@@ -2,11 +2,11 @@ import puppeteer from "puppeteer";
 import { MongoClient } from 'mongodb';
 
 const FUNDS_RANKING_URL = 'https://www.fundsexplorer.com.br/ranking';
-const MONGO_URI = 'mongodb://localhost:27017';
+const MONGO_URI = 'mongodb://host.docker.internal:27017';
 const MONGO_DB = 'fin_data';
 
 const run = async () => {
-    const rawFundData = await scrapeFundData();
+    const rawFundData = await scrapeFundData(); // fixme sandbox mode is not working (0 records found)
     if (!rawFundData) return;
 
     const sanitizedFundData = rawFundData.map(toModel);
@@ -16,7 +16,11 @@ const run = async () => {
 const scrapeFundData = async () => {
     console.log('Starting to scrape data...');
 
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+        executablePath: '/usr/bin/google-chrome',
+        args: ['--no-sandbox']
+    });
+
     const page = await browser.newPage();
 
     try {
@@ -91,7 +95,7 @@ const toMongoInBulk = async fundData => {
         client = new MongoClient(MONGO_URI);
         await client.connect();
     } catch (err) {
-        console.log('Could not connect to Mongo!');
+        console.log(`Could not connect to Mongo: ${err}`);
         return;
     }
 
